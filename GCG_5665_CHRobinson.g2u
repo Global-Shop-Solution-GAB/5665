@@ -1,0 +1,1022 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Size(16320,7185)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Caption("CH EXPORT")
+Gui.Form.GsGcDisplay.Create(GsGridControl)
+Gui.Form.GsGcDisplay.Size(15915,5700)
+Gui.Form.GsGcDisplay.Position(75,795)
+Gui.Form.txtOrderNo.Create(TextBox,"",True,1215,300,0,105,345,True,0,"Arial",8,-2147483643,1)
+Gui.Form.lbl1.Create(Label,"Sales Order",True,1080,255,0,105,120,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdOrderBrw.Create(Button)
+Gui.Form.cmdOrderBrw.Size(435,375)
+Gui.Form.cmdOrderBrw.Position(1395,315)
+Gui.Form.cmdOrderBrw.Caption("^")
+Gui.Form.cmdOrderBrw.Event(Click,cmdOrderBrw_Click)
+Gui.Form.cmdExport.Create(Button)
+Gui.Form.cmdExport.Size(855,375)
+Gui.Form.cmdExport.Position(15090,345)
+Gui.Form.cmdExport.Caption("Export")
+Gui.Form.cmdExport.Event(Click,cmdExport_Click)
+Program.Sub.ScreenSU.End
+'Author: Alejandro Anazco
+Program.Sub.Preflight.Start
+v.Global.sTabs.Declare
+v.Global.sFile.Declare
+v.Global.sFileRet.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Bryan Pham
+'11/18/2020
+'VT: Description TRANSFORMERS ? 4A, 4B, 4C, 4D, 4E, 4F and 4G /// PADMOUNT ? 5A, 5B and 5C // NA - none of above PL
+
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.CallSub(checkCustomFolder)
+	f.Intrinsic.Control.CallSub(createDisplayDT)
+	f.Intrinsic.Control.CallSub(loadGridProperties)
+	f.Intrinsic.Control.If(v.Passed.passedSO.Trim, <>, "")
+		gui.Form.txtOrderNo.Text(v.Passed.passedSO.Trim)
+		f.Intrinsic.Control.CallSub(loadDT)
+	f.Intrinsic.Control.EndIf
+	gui.Form..Show
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+'Closes ODBC connection, default to connection : "con"
+'F.Intrinsic.Control.If(V.ODBC.Connection!Con.State,=,1)
+'	F.ODBC.Connection!Con.Close
+'F.Intrinsic.Control.EndIf
+
+'Generic Error message.
+f.Intrinsic.String.Build("Project ProjectName.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.createDisplayDT.Start
+f.Intrinsic.Control.Try
+	'Create Standard display DT.
+	f.Data.DataTable.Create("displayDT", true)
+	f.Data.DataTable.AddColumn("displayDT", "Export", "Bit", 0)
+	f.Data.DataTable.AddColumn("displayDT", "Exported", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Order_No", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Order_Record", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Part", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Description", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Qty_Ordered", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Weight", "Float")
+	f.Data.DataTable.AddColumn("displayDT", "Pkgd_Weight", "Float")
+	
+	f.Data.DataView.Create("displayDT", "displayDV", 22)
+	gui.Form.GsGcDisplay.AddGridviewFromDataview("displayGV", "displayDT", "displayDV")
+	gui.Form.GsGcDisplay.MainView("displayGV")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.createDisplayDT.End
+
+Program.Sub.loadGridProperties.Start
+v.Local.iCnt.Declare
+v.Local.sFields.Declare
+f.Intrinsic.Control.Try
+	'Gridview Properties
+	f.Intrinsic.String.Split(v.DataTable.displayDT.FieldNames, "*!*", v.Local.sFields)
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.Local.sFields.UBound, 1)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderFontBold", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "Visible", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "ReadOnly", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "AllowEdit", False)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderHAlignment", "Near")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "CellHAlignment", "Near")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderBackColor", v.Color.GSS)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderForeColor", v.Color.White)
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Export", "ReadOnly", False)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Export", "AllowEdit", True)
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Order_No", "Caption", "Order No")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Order_Record", "Caption", "Line")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Qty_Ordered", "Caption", "Qty")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Pkgd_Weight", "Caption", "Pkgd Weight")
+	
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "HeaderHAlignment", "Center")
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "CellHAlignment", "Center")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadGridProperties.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdOrderBrw_Click.Start
+v.Local.sReturn.Declare
+v.Local.sOrderNo.Declare
+v.Local.sSQL.Declare
+f.Intrinsic.Control.Try
+	'Browser for Order No.
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Intrinsic.UI.Browser("Sales Orders", "con", "Select Order_No, Customer, Date_Order, Date_Due from V_Order_Header ", "Order No*!*Customer*!*Date Ordered*!*Date Due", "60*!*60*!*80*!*80", v.Local.sReturn)
+	f.ODBC.Connection!con.Close
+	
+	f.Intrinsic.Control.If(v.Local.sReturn.Trim, <>, "***CANCEL***")
+		f.Intrinsic.String.Split(v.Local.sReturn, "*!*", v.Local.sReturn)
+		gui.Form.txtOrderNo.Text(v.Local.sReturn(0))
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.CallSub(loadDT)
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdOrderBrw_Click.End
+
+Program.Sub.loadDT.Start
+v.Local.sReturn.Declare
+v.Local.sOrderNo.Declare
+v.Local.sSQL.Declare
+f.Intrinsic.Control.Try
+	'Sets Order No from Textbox.
+	v.Local.sOrderNo.Set(v.Screen.Form!txtOrderNo.Text)
+	
+'	F.Intrinsic.Control.If(V.ODBC.Connection!Con.State,=,1)
+'		F.ODBC.Connection!Con.Close
+'	F.Intrinsic.Control.EndIf
+
+	'Gets tje order lines, and the exported status.
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Intrinsic.String.Build("Select Order_No, Record_No as Order_Record, Part, Description, Qty_Ordered, Weight, Pkgd_Weight,  Order_No+Record_No as Exported from V_Order_Lines where Order_No = '{0}'", v.Local.sOrderNo.Trim, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("tmpDisplayDT", "con", v.Local.sSQL)
+	 	f.Intrinsic.String.Build("Select Order_No+Order_Record KeyValue, Exported from GCG_5665_CH_EXPORT where Order_No = '{0}'", v.Local.sOrderNo.Trim, v.Local.sSQL)
+	 	f.Data.Dictionary.CreateFromSQL("exportedDic", "con", v.Local.sSQL)
+	 	f.Data.Dictionary.SetDefaultReturn("exportedDic", "")
+	 	
+	 	f.Data.Dictionary.Create("YesDic")
+	 	f.Data.Dictionary.AddItem("YesDic", "Y", "Yes")
+	 	f.Data.Dictionary.AddItem("YesDic", "N", "No")
+	 	f.Data.Dictionary.SetDefaultReturn("YesDic", "No")
+	f.ODBC.Connection!con.Close
+	
+	f.Data.DataTable.AddColumn("tmpDisplayDT", "Export", "Bit")
+	
+	f.Data.DataTable.FillFromDictionary("tmpDisplayDT", "exportedDic", "Exported")
+	f.Data.DataTable.FillFromDictionary("tmpDisplayDT", "YesDic", "Exported")
+	f.Data.Dictionary.Close("YesDic")
+	f.Data.Dictionary.Close("exportedDic")
+	
+	f.Data.DataTable.DeleteRow("displayDT")
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataTable.Merge("tmpDisplayDT", "displayDT", false, 2)
+	f.Data.DataTable.Close("tmpDisplayDT")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadDT.End
+
+Program.Sub.cmdExport_Click.Start
+v.Local.sSQL.Declare
+v.Local.sReturn.Declare
+v.Local.sOrderNo.Declare
+v.Local.sRecordNo.Declare
+
+f.Intrinsic.Control.Try
+
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataView.Create("displayDT", "exportDV", "22", "Export = True", "")
+	f.Data.DataView.ToString("displayDT", "exportDV", "Order_Record", "*!*", "','", v.Local.sRecordNo)
+	f.Data.DataView.Close("displayDT", "exportDV")	
+	
+	f.Intrinsic.Control.If(v.Local.sRecordNo.Trim, =, "")
+		f.Intrinsic.UI.Msgbox("No Line Number has been selected.")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.orderDT.Exists)
+		f.Data.DataTable.Close("orderDT")
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.linesDT.Exists)
+		f.Data.DataTable.Close("linesDT")
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.shipDT.Exists)
+		f.Data.DataTable.Close("shipDT")
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.billDT.Exists)
+		f.Data.DataTable.Close("billDT")
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.inv3DT.Exists)
+		f.Data.DataTable.Close("inv3DT")
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.companyDT.Exists)
+		f.Data.DataTable.Close("companyDT")
+	f.Intrinsic.Control.EndIf
+	
+	v.Local.sOrderNo.Set(v.Screen.Form!txtOrderNo.Text)
+	
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Intrinsic.String.Build("Select * from V_Order_Header where Order_No = '{0}'", v.Local.sOrderNo, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("orderDT", "con", v.Local.sSQL, true)
+	 	
+	 	f.Data.DataTable.CreateFromSQL("companyDT", "con", "select * from V_COMPANY", true)
+	 	
+	 	f.Intrinsic.String.Build("Select Order_No, Record_No as Order_Record, Part, RTRIM(PART)+RTRIM(LOCATION) as PARTLOC,Description, Part+Location as Pallet_Flag, Qty_Ordered, Weight, Pkgd_Weight, Part+Location as Is_HazMat from V_Order_Lines where Order_No = '{0}' and Record_No in ('{1}')", v.Local.sOrderNo, v.Local.sRecordNo, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("linesDT", "con", v.Local.sSQL, true)
+	 	
+	 	f.Intrinsic.String.Build("Select NAME_CUSTOMER_SHIP, ADDRESS_1_SHIP, CITY_SHIP, STATE_SHIP, CODE_ZIP_SHIP, Salesperson_ship from V_Order_Ship_To where Order_No = '{0}'", v.Local.sOrderNo, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("shipDT", "con", v.Local.sSQL, true)
+	 	
+	 	f.Intrinsic.String.Build("Select CONTACT, CONTACT_PHONE, CONTACT_EMAIL, STATE, ZIP_CODE from V_Order_Bill_To where Order_No = '{0}'", v.Local.sOrderNo, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("billDT", "con", v.Local.sSQL, true)
+	 	
+	 	f.Intrinsic.String.Build("Select Salesperson_ship from V_Order_Ship_To where Order_No = '{0}'", v.Local.sOrderNo, v.Local.sSQL)
+	 	f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL, v.Local.sReturn)
+	 	
+'	 	f.Intrinsic.String.Build("Select ID, Name, Email, ")
+	 	
+	 	f.Data.Dictionary.CreateFromSQL("HZ_Mat", "con", "Select Part+Location as KeyValue, HM_Flag from V_Inventory_Mst3")
+	 	f.Data.Dictionary.SetDefaultReturn("HZ_Mat", " ")
+	 	
+	 	f.Data.Dictionary.CreateFromSQL("Pallet_Flag", "con", "Select Part+Location as KeyValue, Pallet_Flag from V_Inventory_Mst3")
+	 	f.Data.Dictionary.SetDefaultReturn("Pallet_Flag", " ")
+	 	
+	 	f.Data.Dictionary.Create("Pallet_Text")
+	 	f.Data.Dictionary.AddItem("Pallet_Text", "Y", "Pallet")
+	 	f.Data.Dictionary.SetDefaultReturn("Pallet_Text", " ")	 
+	 	
+	 	f.Data.Dictionary.Create("HM_Text")
+	 	f.Data.Dictionary.AddItem("HM_Text", "Y", "True")
+	 	f.Data.Dictionary.AddItem("HM_Text", "N", "False")
+	 	f.Data.Dictionary.SetDefaultReturn("HM_Text", "False")	 	
+	f.ODBC.Connection!con.Close	
+	
+	f.Data.DataTable.FillFromDictionary("linesDT", "HZ_Mat", "IS_HAZMAT")
+	f.Data.Dictionary.Close("HZ_Mat")
+	
+	f.Data.DataTable.FillFromDictionary("linesDT", "Pallet_Flag", "Pallet_Flag")
+	f.Data.Dictionary.Close("Pallet_Flag")
+	
+	f.Data.DataTable.AddColumn("linesDT", "Container_Name", "String")
+	f.Data.DataTable.FillFromDictionary("linesDT", "Pallet_Text", "Pallet_Flag", "Container_Name")
+	f.Data.Dictionary.Close("Pallet_Text")
+	
+	f.Data.DataTable.FillFromDictionary("linesDT", "HM_Text", "IS_HAZMAT")
+	f.Data.Dictionary.Close("HM_Text")
+	
+	f.Intrinsic.Control.If(v.DataTable.orderDT.RowCount, <>, 1)
+		f.Intrinsic.UI.Msgbox("Order No has not been found.")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.linesDT.RowCount, <, 1)
+		f.Intrinsic.UI.Msgbox("Line Number has not be found.")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.DataTable.shipDT.RowCount, <, 1)
+		f.Intrinsic.UI.Msgbox("Ship No has not been found.")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.CallSub(createXML_Root)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdExport_Click.End
+
+Program.Sub.createXML_Root.Start
+v.Local.sTab.Declare
+v.Local.sOrderNo.Declare
+v.Local.sFileName.Declare
+f.Intrinsic.Control.Try
+	v.Local.sOrderNo.Set(v.Screen.Form!txtOrderNo.Text)
+	
+	'CreateXml
+	f.Global.XML.CreateDocument("xmlDoc", False, True, False, False)
+	'Set Root, Root is our First and Main Tag
+	f.Global.XML.SetRoot("xmlDoc", "FREIGHTVIEW")
+	
+'	'Now Set the Attribute to our Root
+'	f.Global.XML.CreateAttributeNode("xmlDoc","Version","1.1")
+'	'Setting Version back to the Root
+'	f.Global.XML.SetAttributeToRoot("xmlDoc","Version")
+'	'Destroy the Attribute Node because we no longer need it
+'	f.Global.XML.DestroyNode("xmlDoc","Version")
+	
+	f.Global.XML.CreateElementNode("xmlDoc", "ORDER_LIST", "")
+	f.Intrinsic.String.Build("{0}{1}", v.Ambient.NewLine,v.Ambient.Tab,v.Local.sTab)
+	f.Global.XML.AppendTextNode("xmlDoc", "Root", v.Local.sTab)
+	f.Global.XML.AppendNodeToRoot("xmlDoc", "ORDER_LIST")
+	
+	f.Intrinsic.Control.CallSub(createOrderList)
+	
+	'f.Global.XML.AppendNode("xmlDoc", "FREIGHTVIEW", "ORDER_LIST")
+	F.Global.XML.DestroyNode("xmlDoc","ORDER_LIST")
+		
+	f.Global.XML.AppendTextNode("xmlDoc", "Root", v.Ambient.NewLine)
+	
+	f.Global.XML.AppendNodeToRoot("xmlDoc","FREIGHTVIEW")
+	f.Global.XML.DestroyNode("xmlDoc","FREIGHTVIEW")
+
+	'Save the document and close the object.
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5665", v.Caller.GlobalDir, v.Global.sFile)
+	f.Intrinsic.String.Build("{0}.txt", v.Local.sOrderNo.Trim,  v.Local.sFileName)
+	
+	
+	f.Global.XML.SaveDocument("xmlDoc",v.Global.sFile, v.Local.sFileName)
+	f.Global.XML.CloseDocument("xmlDoc")
+	
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5665\{1}", v.Caller.GlobalDir, v.Local.sFileName.Trim, v.Global.sFile)
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5665\{1}POST.txt", v.Caller.GlobalDir, v.Local.sOrderNo.Trim, v.Global.sFileRet)
+	
+	f.Intrinsic.Control.CallSub(postXML)
+	f.Intrinsic.Control.CallSub(loadDT)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.createXML_Root.End
+
+Program.Sub.createOrderList.Start
+v.Local.iCnt.Declare
+v.Local.sOrder.Declare
+v.Local.dTempDate.Declare
+v.Local.sDateDue.Declare
+v.Local.sTabs.Declare
+v.Local.sTemp.Declare
+v.Local.sSQL.Declare
+v.Local.fQty.Declare
+v.Local.sDescription.Declare
+v.Local.sPackaging_Type.Declare
+v.Local.sIS_HAZMAT.Declare
+v.Local.fWeight.Declare
+v.Local.sCustomer.Declare
+
+v.Local.sCust_Address1.Declare
+v.Local.sCust_Address2.Declare
+v.Local.sCust_City.Declare
+v.Local.sCust_State.Declare
+v.Local.sCust_Postal.Declare
+
+v.Local.sPL.Declare
+
+v.Local.sCOMPANY_NAME.Declare(String, " ")
+v.Local.sCCC_CONTACT.Declare(String, " ")
+v.Local.sCCC_PHONE.Declare(String, " ")
+v.Local.sCCC_EMAIL.Declare(String, " ")
+v.Local.sCCC_NOTIFICATION.Declare(String, " ")
+f.Intrinsic.Control.Try
+
+
+	v.Local.sOrder.Set(v.DataTable.orderDT(0).Order_no!FieldValTrim)
+	F.Intrinsic.Control.If(v.DataTable.orderDT(0).Date_Due!FieldVal,>=,V.Ambient.Date)
+		v.Local.dTempDate.Set(v.DataTable.orderDT(0).Date_Due!FieldVal)
+	F.Intrinsic.Control.Else
+		V.Local.dTempDate.Set(V.Ambient.Date)
+	F.Intrinsic.Control.EndIf
+	'v.Local.sCustomer.Set(v.DataTable.orderDT(0).Customer!FieldVal)
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Intrinsic.String.Build("Select * from GCG_5665_CCC_CONTACT where COMPANY_CODE = '{0}'", v.Caller.CompanyCode, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("cccConctactDT", "con", v.Local.sSQL)
+	 	
+'	 	f.Intrinsic.String.Build("Select * from V_CUSTOMER_MASTER where CUSTOMER = '{0}'", v.Local.sCustomer, v.Local.sSQL)
+'	 	f.Data.DataTable.CreateFromSQL("customerMasterDT", "con", v.Local.sSQL)
+	 	
+	 	f.Intrinsic.String.Build("Select TOP 1 * from V_ORDER_SHIP_TO where Order_No = '{0}'", v.Local.sOrder, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("shiptoDT", "con", v.Local.sSQL)
+	
+	
+	f.Intrinsic.Control.If(v.DataTable.cccConctactDT.RowCount, =, 1)
+		v.Local.sCOMPANY_NAME.Set(v.DataTable.cccConctactDT(0).COMPANY_NAME!FieldValTrim)
+		v.Local.sCCC_CONTACT.Set(v.DataTable.cccConctactDT(0).CCC_CONTACT!FieldValTrim)
+		v.Local.sCCC_PHONE.Set(v.DataTable.cccConctactDT(0).CCC_PHONE!FieldValTrim)
+		v.Local.sCCC_EMAIL.Set(v.DataTable.cccConctactDT(0).CCC_EMAIL!FieldValTrim)
+		v.Local.sCCC_NOTIFICATION.Set(v.DataTable.cccConctactDT(0).CCC_NOTIFICATION!FieldValTrim)
+	f.Intrinsic.Control.EndIf
+	
+	f.Data.DataTable.Close("cccConctactDT")
+	
+'	f.Intrinsic.Control.If(v.DataTable.customerMasterDT.RowCount, =, 1)
+'		v.Local.sCust_Address1.Set(v.DataTable.customerMasterDT(0).ADDRESS1!FieldValTrim)
+'		v.Local.sCust_Address2.Set(v.DataTable.customerMasterDT(0).ADDRESS2!FieldValTrim)
+'		v.Local.sCust_City.Set(v.DataTable.customerMasterDT(0).CITY!FieldValTrim)
+'		v.Local.sCust_State.Set(v.DataTable.customerMasterDT(0).STATE!FieldValTrim)
+'		v.Local.sCust_Postal.Set(v.DataTable.customerMasterDT(0).ZIP!FieldValTrim)
+'	f.Intrinsic.Control.EndIf
+'	
+'	f.Data.DataTable.Close("customerMasterDT")
+
+	f.Intrinsic.Control.If(v.DataTable.shiptoDT.RowCount, =, 1)
+		v.Local.sCustomer.Set(v.DataTable.shiptoDT(0).NAME_CUSTOMER_SHIP!FieldValTrim)
+		v.Local.sCust_Address1.Set(v.DataTable.shiptoDT(0).ADDRESS_1_SHIP!FieldValTrim)
+		v.Local.sCust_Address2.Set(v.DataTable.shiptoDT(0).ADDRESS_2_SHIP!FieldValTrim)
+		v.Local.sCust_City.Set(v.DataTable.shiptoDT(0).CITY_SHIP!FieldValTrim)
+		v.Local.sCust_State.Set(v.DataTable.shiptoDT(0).STATE_SHIP!FieldValTrim)
+		v.Local.sCust_Postal.Set(v.DataTable.shiptoDT(0).CODE_ZIP_SHIP!FieldValTrim)
+		
+		f.Intrinsic.String.Left(v.Local.sCust_Postal, 5, v.Local.sCust_Postal)
+	f.Intrinsic.Control.EndIf
+	
+	f.Data.DataTable.Close("shiptoDT")
+	
+	
+	'f.Intrinsic.String.DateString(v.Local.dTempDate, v.Local.sDateDue)
+	f.Intrinsic.String.Format(v.Local.dTempDate, "YYYY-MM-DD", v.Local.sDateDue)
+	f.Global.XML.CreateElementNode("xmlDoc","ORDER", "")
+
+		'Create Attribute for Node Order.
+		f.Global.XML.CreateAttributeNode("xmlDoc", "ID", "")
+		f.Global.XML.SetAttributeToNode("xmlDoc", "ORDER", "ID")
+		f.Global.XML.DestroyNode("xmlDoc", "ID")
+		
+		f.Intrinsic.String.Build("{0}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+		f.Global.XML.AppendTextNode("xmlDoc", "ORDER_LIST", v.Local.sTabs)
+		f.Global.XML.AppendNode("xmlDoc", "ORDER_LIST","ORDER")
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "ORDER_NUMBER", v.Local.sOrder)
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "ORDER_NUMBER")
+			f.Global.XML.DestroyNode("xmlDoc", "ORDER_NUMBER")
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "READY_DATE", v.Local.sDateDue)
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "READY_DATE")
+			f.Global.XML.DestroyNode("xmlDoc", "READY_DATE")
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "UserID", "121974")
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "UserID")
+			f.Global.XML.DestroyNode("xmlDoc", "UserID")
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "LOCATION_ID", "3296")
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "LOCATION_ID")
+			f.Global.XML.DestroyNode("xmlDoc", "LOCATION_ID")
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "LOCATIONS", "")
+			f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "LOCATIONS", v.Local.sTabs)
+			
+				f.Global.XML.CreateElementNode("xmlDoc", "LOCATION", "")
+				
+					f.Global.XML.CreateAttributeNode("xmlDoc", "sequence", "0")
+					f.Global.XML.SetAttributeToNode("xmlDoc", "LOCATION", "sequence")
+					f.Global.XML.DestroyNode("xmlDoc", "sequence")
+
+					f.Global.XML.CreateAttributeNode("xmlDoc", "type", "Origin")
+					f.Global.XML.SetAttributeToNode("xmlDoc", "LOCATION", "type")
+					f.Global.XML.DestroyNode("xmlDoc", "type")
+					
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "NAME", "FEDERAL PACIFIC")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "NAME")
+					f.Global.XML.DestroyNode("xmlDoc", "NAME")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "OriginLocationName", "24201")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "OriginLocationName")
+					f.Global.XML.DestroyNode("xmlDoc", "OriginLocationName")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "STREET_ADDRESS", "601 OLD AIRPORT RD")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STREET_ADDRESS")
+					f.Global.XML.DestroyNode("xmlDoc", "STREET_ADDRESS")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "CITY", "BRISTOL")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "CITY")
+					f.Global.XML.DestroyNode("xmlDoc", "CITY")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "STATE", "VA")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STATE")
+					f.Global.XML.DestroyNode("xmlDoc", "STATE")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "POSTAL_CODE", "24201")
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "POSTAL_CODE")
+					f.Global.XML.DestroyNode("xmlDoc", "POSTAL_CODE")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+'					f.Global.XML.CreateElementNode("xmlDoc", "NAME", v.DataTable.companyDT(0).Name_Company!FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "NAME")
+'					f.Global.XML.DestroyNode("xmlDoc", "NAME")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+'					
+'					f.Global.XML.CreateElementNode("xmlDoc", "OriginLocationName", "24201")
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "OriginLocationName")
+'					f.Global.XML.DestroyNode("xmlDoc", "OriginLocationName")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+'					
+'					f.Global.XML.CreateElementNode("xmlDoc", "STREET_ADDRESS", v.DataTable.companyDT(0).Address1!FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STREET_ADDRESS")
+'					f.Global.XML.DestroyNode("xmlDoc", "STREET_ADDRESS")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+'					
+'					f.Global.XML.CreateElementNode("xmlDoc", "CITY", v.DataTable.companyDT(0).City!FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "CITY")
+'					f.Global.XML.DestroyNode("xmlDoc", "CITY")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+'					
+'					f.Global.XML.CreateElementNode("xmlDoc", "STATE", v.DataTable.companyDT(0).State!FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STATE")
+'					f.Global.XML.DestroyNode("xmlDoc", "STATE")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+'					
+'					f.Global.XML.CreateElementNode("xmlDoc", "POSTAL_CODE", v.DataTable.companyDT(0).Code_Zip!FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "POSTAL_CODE")
+'					f.Global.XML.DestroyNode("xmlDoc", "POSTAL_CODE")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "APPOINTMENT", "")
+						f.Global.XML.CreateAttributeNode("xmlDoc", "required", "false")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "APPOINTMENT", "required")
+						f.Global.XML.DestroyNode("xmlDoc", "required")
+						
+						f.Global.XML.CreateAttributeNode("xmlDoc", "scheduled", "false")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "APPOINTMENT", "scheduled")
+						f.Global.XML.DestroyNode("xmlDoc", "scheduled")
+						
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "APPOINTMENT")
+					f.Global.XML.DestroyNode("xmlDoc", "APPOINTMENT")
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "CONTACT", "")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+
+						f.Global.XML.CreateElementNode("xmlDoc", "COMPANY", v.Local.sCOMPANY_NAME)
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "COMPANY")
+						f.Global.XML.DestroyNode("xmlDoc", "COMPANY")
+						
+						'f.Global.XML.CreateElementNode("xmlDoc", "NAME", v.Local.sCCC_CONTACT)
+						f.Global.XML.CreateElementNode("xmlDoc", "NAME", "JEFF GREEN")
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "NAME")
+						f.Global.XML.DestroyNode("xmlDoc", "NAME")
+					
+						f.Global.XML.CreateElementNode("xmlDoc", "PHONE", v.Local.sCCC_PHONE)
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "PHONE")
+						f.Global.XML.DestroyNode("xmlDoc", "PHONE")
+						
+						f.Global.XML.CreateElementNode("xmlDoc", "EMAIL_ADDRESS", v.Local.sCCC_EMAIL)
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "EMAIL_ADDRESS")
+						f.Global.XML.DestroyNode("xmlDoc", "EMAIL_ADDRESS")
+						
+						f.Global.XML.CreateElementNode("xmlDoc", "NOTIFICATION_METHOD", v.Local.sCCC_NOTIFICATION)
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "NOTIFICATION_METHOD")
+						f.Global.XML.DestroyNode("xmlDoc", "NOTIFICATION_METHOD")
+						
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "CONTACT")
+					f.Global.XML.DestroyNode("xmlDoc", "CONTACT")
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "FACILITY", "")
+						f.Global.XML.CreateAttributeNode("xmlDoc", "type", "BusinessWithDock")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "FACILITY", "type")
+						f.Global.XML.DestroyNode("xmlDoc", "type")
+						
+						f.Global.XML.CreateElementNode("xmlDoc", "ARRIVAL_NOTIFICATION", "false")
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+						f.Global.XML.AppendTextNode("xmlDoc", "FACILITY", v.Local.sTabs)
+						f.Global.XML.AppendNode("xmlDoc", "FACILITY", "ARRIVAL_NOTIFICATION")
+						f.Global.XML.DestroyNode("xmlDoc", "ARRIVAL_NOTIFICATION")		
+						
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+						f.Global.XML.AppendTextNode("xmlDoc", "FACILITY", v.Local.sTabs)
+						
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "FACILITY")
+					f.Global.XML.DestroyNode("xmlDoc", "FACILITY")
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+						
+				f.Global.XML.AppendNode("xmlDoc", "LOCATIONS", "LOCATION")
+				f.Global.XML.DestroyNode("xmlDoc", "LOCATION")				
+			'**********************************
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "LOCATIONS", v.Local.sTabs)
+				f.Global.XML.CreateElementNode("xmlDoc", "LOCATION", "")
+				
+					f.Global.XML.CreateAttributeNode("xmlDoc", "sequence", "1")
+					f.Global.XML.SetAttributeToNode("xmlDoc", "LOCATION", "sequence")
+					f.Global.XML.DestroyNode("xmlDoc", "sequence")
+
+					f.Global.XML.CreateAttributeNode("xmlDoc", "type", "Destination")
+					f.Global.XML.SetAttributeToNode("xmlDoc", "LOCATION", "type")
+					f.Global.XML.DestroyNode("xmlDoc", "type")
+					
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "NAME", v.Local.sCustomer)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "NAME")
+					f.Global.XML.DestroyNode("xmlDoc", "NAME")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+'					f.Global.XML.CreateElementNode("xmlDoc", "OriginLocationName", v.DataTable.shipDT(0).ADDRESS_1_SHIP   !FieldValTrim)
+'					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "OriginLocationName")
+'					f.Global.XML.DestroyNode("xmlDoc", "OriginLocationName")
+'					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "STREET_ADDRESS", v.Local.sCust_Address1)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STREET_ADDRESS")
+					f.Global.XML.DestroyNode("xmlDoc", "STREET_ADDRESS")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "STREET_ADDRESS2", v.Local.sCust_Address2)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STREET_ADDRESS2")
+					f.Global.XML.DestroyNode("xmlDoc", "STREET_ADDRESS2")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "CITY", v.Local.sCust_City)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "CITY")
+					f.Global.XML.DestroyNode("xmlDoc", "CITY")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "STATE", v.Local.sCust_State)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "STATE")
+					f.Global.XML.DestroyNode("xmlDoc", "STATE")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "POSTAL_CODE", v.Local.sCust_Postal)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "POSTAL_CODE")
+					f.Global.XML.DestroyNode("xmlDoc", "POSTAL_CODE")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "APPOINTMENT", "")
+						f.Global.XML.CreateAttributeNode("xmlDoc", "required", "false")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "APPOINTMENT", "required")
+						f.Global.XML.DestroyNode("xmlDoc", "required")
+						
+						f.Global.XML.CreateAttributeNode("xmlDoc", "scheduled", "false")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "APPOINTMENT", "scheduled")
+						f.Global.XML.DestroyNode("xmlDoc", "scheduled")
+						
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "APPOINTMENT")
+					f.Global.XML.DestroyNode("xmlDoc", "APPOINTMENT")
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "CONTACT", "")
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					
+						f.Global.XML.CreateElementNode("xmlDoc", "COMPANY", v.Local.sCustomer)
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "COMPANY")
+						f.Global.XML.DestroyNode("xmlDoc", "COMPANY")
+						
+						f.Global.XML.CreateElementNode("xmlDoc", "NAME", "RECEIVING")
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "NAME")
+						f.Global.XML.DestroyNode("xmlDoc", "NAME")
+					
+						f.Global.XML.CreateElementNode("xmlDoc", "PHONE", "5555555555")
+						f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)	
+						f.Global.XML.AppendNode("xmlDoc", "CONTACT", "PHONE")
+						f.Global.XML.DestroyNode("xmlDoc", "PHONE")
+						
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "CONTACT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "CONTACT")
+					f.Global.XML.DestroyNode("xmlDoc", "CONTACT")
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "FACILITY", "")
+						f.Global.XML.CreateAttributeNode("xmlDoc", "type", "BusinessWithDock")
+						f.Global.XML.SetAttributeToNode("xmlDoc", "FACILITY", "type")
+						f.Global.XML.DestroyNode("xmlDoc", "type")
+						
+						f.Global.XML.CreateElementNode("xmlDoc", "ARRIVAL_NOTIFICATION", "false")
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+						f.Global.XML.AppendTextNode("xmlDoc", "FACILITY", v.Local.sTabs)
+						f.Global.XML.AppendNode("xmlDoc", "FACILITY", "ARRIVAL_NOTIFICATION")
+						f.Global.XML.DestroyNode("xmlDoc", "ARRIVAL_NOTIFICATION")		
+						
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+						f.Global.XML.AppendTextNode("xmlDoc", "FACILITY", v.Local.sTabs)
+						
+					f.Global.XML.AppendNode("xmlDoc", "LOCATION", "FACILITY")
+					f.Global.XML.DestroyNode("xmlDoc", "FACILITY")
+					
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "LOCATION", v.Local.sTabs)
+						
+				f.Global.XML.AppendNode("xmlDoc", "LOCATIONS", "LOCATION")
+				f.Global.XML.DestroyNode("xmlDoc", "LOCATION")	
+				
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "LOCATIONS")
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "LOCATIONS", v.Local.sTabs)
+			f.Global.XML.DestroyNode("xmlDoc", "LOCATIONS")
+		'******************************
+			f.Global.XML.CreateElementNode("xmlDoc", "MODE_LIST", "")
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+				
+				f.Global.XML.CreateElementNode("xmlDoc", "MODE", "")				
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "MODE_LIST", v.Local.sTabs)
+				
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "MODE", v.Local.sTabs)
+				
+					f.Global.XML.CreateElementNode("xmlDoc", "CLASS", "DRY VAN")
+					f.Global.XML.AppendNode("xmlDoc", "MODE", "CLASS")
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "EQUIPMENT_LIST", "")				
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "MODE", v.Local.sTabs)
+					
+						f.Global.XML.CreateElementNode("xmlDoc", "EQUIPMENT", "53'")
+						f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+						f.Global.XML.AppendTextNode("xmlDoc", "EQUIPMENT_LIST", v.Local.sTabs)
+						f.Global.XML.AppendNode("xmlDoc", "EQUIPMENT_LIST", "EQUIPMENT")	
+						f.Global.XML.DestroyNode("xmlDoc", "EQUIPMENT")
+						
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "EQUIPMENT_LIST", v.Local.sTabs)
+					
+					f.Global.XML.AppendNode("xmlDoc", "MODE", "EQUIPMENT_LIST")	
+					f.Global.XML.DestroyNode("xmlDoc", "EQUIPMENT_LIST")
+				
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "MODE", v.Local.sTabs)
+					
+				f.Global.XML.AppendNode("xmlDoc", "MODE_LIST", "MODE")	
+				f.Global.XML.DestroyNode("xmlDoc", "MODE")
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "MODE_LIST", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "MODE_LIST")
+			f.Global.XML.DestroyNode("xmlDoc", "MODE_LIST")
+			
+			f.Global.XML.CreateElementNode("xmlDoc", "PRODUCTS", "")
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			
+			'f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.linesDT.RowCount--, 1)
+			'f.Intrinsic.Control.For(v.Local.iCnt, 0, 1, 1)
+			v.Local.iCnt.Set(0)
+			
+			'change by rlk.  only sending over a total qty, total weight, and a Desc from the last so line
+			f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.linesDT.RowCount--, 1)
+				F.Intrinsic.Math.Add(V.Local.fQty,v.DataTable.linesDT(v.Local.iCnt).QTY_ORDERED!FieldVal,V.Local.fQty)
+				F.Intrinsic.Math.Add(V.Local.fWeight,v.DataTable.linesDT(v.Local.iCnt).weight!FieldVal,V.Local.fWeight)
+			f.Intrinsic.Control.Next(v.Local.iCnt)
+				v.Local.sDescription.Set(v.DataTable.linesDT(v.DataTable.linesDT.RowCount--).Description!FieldValTrim)
+'============================ADDED by BRYAN PHAM=======================================================================================================================================
+				
+				
+				f.Intrinsic.String.Build("Select RTRIM(PRODUCT_LINE) from V_INVENTORY_MSTR where RTRIM(PART)+RTRIM(LOCATION) = '{0}';",v.DataTable.linesDT(0).PARTLOC!FieldValTrim,v.Local.sSQL)
+				f.ODBC.Connection!con.ExecuteAndReturn(v.Local.sSQL,v.Local.sPL)
+				f.Intrinsic.Control.If(v.Local.sPL,=,"4A",or,v.Local.sPL,=,"4B",v.Local.sPL,=,"4C",v.Local.sPL,=,"4D",v.Local.sPL,=,"4E",v.Local.sPL,=,"4F",v.Local.sPL,=,"4G")
+					v.Local.sDescription.Set("TRANSFORMERS")
+				f.Intrinsic.Control.ElseIf(v.Local.sPL,=,"5A",or,v.Local.sPL,=,"5B",v.Local.sPL,=,"5C")
+					v.Local.sDescription.Set("PADMOUNT")
+				f.Intrinsic.Control.Else
+					v.Local.sDescription.Set("NA")
+				f.Intrinsic.Control.EndIf
+'======================================================================================================================================================================================
+'				v.Local.sPackaging_Type.Set(v.DataTable.linesDT(v.Local.iCnt).Container_Name!FieldValTrim)
+				v.Local.sIS_HAZMAT.Set(v.DataTable.linesDT(v.DataTable.linesDT.RowCount--).IS_HAZMAT!FieldValTrim)
+'				v.Local.fQty.Set(v.DataTable.linesDT(v.Local.iCnt).QTY_ORDERED!FieldVal)
+'				v.Local.fWeight.Set(v.DataTable.linesDT(v.Local.iCnt).weight!FieldValTrim)
+
+'previous setting before RLK change.
+'				v.Local.fQty.Set(v.DataTable.linesDT(v.Local.iCnt).QTY_ORDERED!FieldVal)
+'				v.Local.sDescription.Set(v.DataTable.linesDT(v.Local.iCnt).Description!FieldValTrim)
+'				v.Local.sPackaging_Type.Set(v.DataTable.linesDT(v.Local.iCnt).Container_Name!FieldValTrim)
+'				v.Local.sIS_HAZMAT.Set(v.DataTable.linesDT(v.Local.iCnt).IS_HAZMAT!FieldValTrim)
+'				v.Local.fWeight.Set(v.DataTable.linesDT(v.Local.iCnt).weight!FieldValTrim)
+			
+				f.Global.XML.CreateElementNode("xmlDoc", "PRODUCT", "")
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "PRODUCTS", v.Local.sTabs)			
+				
+					f.Global.XML.CreateElementNode("xmlDoc", "QUANTITY", v.Local.fQty)
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "QUANTITY")
+					f.Global.XML.DestroyNode("xmlDoc", "QUANTITY")
+				
+					f.Global.XML.CreateElementNode("xmlDoc", "DESCRIPTION", v.Local.sDescription)
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "DESCRIPTION")
+					f.Global.XML.DestroyNode("xmlDoc", "DESCRIPTION")
+					
+					'f.Global.XML.CreateElementNode("xmlDoc", "PACKAGING_TYPE", v.Local.sPackaging_Type)
+					f.Global.XML.CreateElementNode("xmlDoc", "PACKAGING_TYPE", "PALLET")
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "PACKAGING_TYPE")
+					f.Global.XML.DestroyNode("xmlDoc", "PACKAGING_TYPE")
+					
+					f.Intrinsic.Control.If(v.Local.fWeight, =, 0)
+						v.Local.fWeight.Set(1)
+					f.Intrinsic.Control.EndIf
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "WEIGHT", v.Local.fWeight)
+					'f.Global.XML.CreateElementNode("xmlDoc", "WEIGHT", "1")
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "WEIGHT")
+					f.Global.XML.DestroyNode("xmlDoc", "WEIGHT")
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "IS_HAZMAT", v.Local.sIS_HAZMAT)
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "IS_HAZMAT")
+					f.Global.XML.DestroyNode("xmlDoc", "IS_HAZMAT")
+					
+					f.Global.XML.CreateElementNode("xmlDoc", "FREIGHT_CLASS", "85")
+					f.Intrinsic.String.Build("{0}{1}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+					f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+					f.Global.XML.AppendNode("xmlDoc", "PRODUCT", "FREIGHT_CLASS")
+					f.Global.XML.DestroyNode("xmlDoc", "FREIGHT_CLASS")
+					
+				f.Intrinsic.String.Build("{0}{1}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+				f.Global.XML.AppendTextNode("xmlDoc", "PRODUCT", v.Local.sTabs)
+				f.Global.XML.AppendNode("xmlDoc", "PRODUCTS", "PRODUCT")
+				f.Global.XML.DestroyNode("xmlDoc", "PRODUCT")
+			'f.Intrinsic.Control.Next(v.Local.iCnt)
+			
+				
+				
+			f.Intrinsic.String.Build("{0}{1}{1}{1}", v.Ambient.NewLine, v.Ambient.Tab, v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "PRODUCTS", v.Local.sTabs)
+			f.Global.XML.AppendNode("xmlDoc", "ORDER", "PRODUCTS")
+			f.Global.XML.DestroyNode("xmlDoc", "PRODUCTS")
+			
+			f.Intrinsic.String.Build("{0}{1}{1}",v.Ambient.NewLine,v.Ambient.Tab,v.Local.sTabs)
+			f.Global.XML.AppendTextNode("xmlDoc", "ORDER", v.Local.sTabs)
+			F.Global.XML.DestroyNode("xmlDoc","ORDER")
+			
+		f.Intrinsic.String.Build("{0}{1}",v.Ambient.NewLine,v.Ambient.Tab,v.Local.sTabs)
+		f.Global.XML.AppendTextNode("xmlDoc", "ORDER_LIST", v.Local.sTabs)
+		f.Global.XML.AppendTextNode("xmlDoc", "FREIGHTVIEW", v.Ambient.NewLine)
+		
+		f.ODBC.Connection!con.Close
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.createOrderList.End
+
+Program.Sub.postXML.Start
+v.Local.sAuthID.Declare
+v.Local.sAuthKey.Declare
+v.Local.sContentType.Declare
+v.Local.sPostURL.Declare
+v.Local.sVersion.Declare
+v.Local.sRet.Declare(String, "")
+v.Local.sXML.Declare
+v.Local.sGet.Declare
+
+v.Local.sText.Declare
+v.Local.sTemp.Declare
+v.Local.sTemp2.Declare
+v.Local.sOrderId.Declare
+v.Local.sOrder_No.Declare
+v.Local.sConfirmation.Declare
+v.Local.sError.Declare
+v.Local.sMsg.Declare
+v.Local.iCnt.Declare
+f.Intrinsic.Control.Try
+
+	'Check table is close.
+	f.Intrinsic.Control.If(v.DataTable.loadDT.Exists)
+		f.Data.DataTable.Close("loadDT")
+	f.Intrinsic.Control.EndIf
+	'Load from DB.
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Data.DataTable.CreateFromSQL("loadDT", "con", "Select * from GCG_5665_POST_INFO")
+	f.ODBC.Connection!con.Close
+	'Check there's only one record.
+	f.Intrinsic.Control.If(v.DataTable.loadDT.RowCount, <>, 1)
+		'Ask to restore Hardcoded Data.
+		f.Intrinsic.String.Build("Row count different that 1.{0}Would you like to retore System Data?", v.Ambient.NewLine, v.Local.sMSG)
+		f.Intrinsic.UI.Msgbox("No Post Setting found. Please fill Post Settings.", "Error")
+		f.Data.DataTable.Close("loadDT")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	'Set Textboxes.
+	v.Local.sAuthID.Set(v.DataTable.loadDT(0).AuthID!FieldValTrim)
+	v.Local.sAuthKey.Set(v.DataTable.loadDT(0).AuthKey!FieldValTrim)
+	v.Local.sContentType.Set(v.DataTable.loadDT(0).ContentType!FieldValTrim)
+	v.Local.sPostURL.Set(v.DataTable.loadDT(0).PostURL!FieldValTrim)
+	v.Local.sVersion.Set("8675309-test2")
+	
+	f.Intrinsic.Control.AddEventHandler("HTTPSEndTransfer","EndTransfer")
+
+	f.Intrinsic.File.File2String(v.Global.sFile, 0, v.Local.sXML)
+	f.Intrinsic.String.Build("authId={0}&authKey={1}&ShipmentList={2}&VersionNumber={3} HTTP/1.1",v.Local.sAuthID,v.Local.sAuthKey,v.Local.sXML,v.Local.sVersion,v.Local.sGet)
+	f.Communication.HTTP.SetProperty("PostData",v.Local.sGet)
+	f.Communication.HTTP.SetProperty("contenttype", v.Local.sContentType)
+	f.Communication.HTTP.Post(v.Local.sPostURL)
+	f.Communication.HTTP.ReadProperty("TRANSFERREDDATA", V.Local.sret)
+	Function.Intrinsic.File.String2File(v.Global.sFileRet, v.Local.sRet, 0)
+	
+	f.Intrinsic.File.File2String(v.Global.sFileRet, 0, v.Local.sText)
+	
+	f.Intrinsic.String.Split(v.Local.sText, v.Ambient.DblQuote, v.Local.sTemp)
+	f.Intrinsic.Control.If(v.Local.sTemp.UBound, >, 6)
+		v.Local.sOrderId.Set(v.Local.sTemp(7))
+	f.Intrinsic.Control.Else
+		v.Local.sOrderId.Set("ERROR")
+	f.Intrinsic.Control.EndIf
+	
+	
+	f.Intrinsic.String.Split(v.Local.sText, "&lt;ORDER_NUMBER&gt;", v.Local.sTemp)
+	f.Intrinsic.String.Split(v.Local.sTemp(1), "&lt;/ORDER_NUMBER&gt;", v.Local.sTemp2)
+	v.Local.sOrder_No.Set(v.Local.sTemp2(0))
+'	Function.Intrinsic.Debug.InvokeDebugger
+'	Function.Intrinsic.Debug.Stop
+	
+	f.Intrinsic.String.Split(v.Local.sText, "&lt;CONFIRMATION&gt;", v.Local.sTemp)
+	f.Intrinsic.Control.If(v.Local.sTemp.UBound, >, 0)
+		f.Intrinsic.String.Split(v.Local.sTemp(1), "&lt;/CONFIRMATION&gt;", v.Local.sTemp2)
+		v.Local.sConfirmation.Set(v.Local.sTemp2(0))		
+		f.Intrinsic.String.Build("CH ROBINSON - GSS Integration{0}{0}ORDER ID: {1}{0}ORDER_NUMBER: {2}{0}CONFIRMATION: {3}", v.Ambient.NewLine, v.Local.sOrderId, v.Local.sOrder_No, v.Local.sConfirmation, v.Local.sMsg)
+
+		f.Data.DataView.Create("displayDT", "exportedDV", 22, "Export = True", "")
+		f.Data.DataView.ToDataTableDistinct("displayDT", "exportedDV", "saveDT", "ORDER_NO*!*Order_Record")
+		f.Data.DataTable.AddColumn("saveDT", "Exported", "String", "Y")
+		f.Data.DataTable.AddColumn("saveDT", "LAST_USER", "String", v.Caller.User)
+		f.Data.DataTable.AddColumn("saveDT", "LAST_DATE", "String", v.Ambient.Date.PSQLFriendly)
+	'	Function.Intrinsic.Debug.Stop
+		
+		f.ODBC.Connection!con.OpenCompanyConnection
+		 	f.Data.DataTable.SaveToDB("saveDT", "con", "GCG_5665_CH_EXPORT", "ORDER_NO*!*Order_Record")
+		f.ODBC.Connection!con.Close
+		f.Data.DataTable.Close("saveDT")
+		f.Data.DataView.Close("displayDT", "exportedDV")
+	f.Intrinsic.Control.Else
+		f.Intrinsic.String.Split(v.Local.sText, "&lt;ERROR&gt;", v.Local.sTemp)
+		f.Intrinsic.Control.For(v.Local.iCnt, 1, v.Local.sTemp.UBound, 1)
+			f.Intrinsic.String.Split(v.Local.sTemp(v.Local.iCnt), "&lt;/ERROR&gt;", v.Local.sTemp2)
+			f.Intrinsic.String.Build("{0}{1}ERROR: {2}", v.Local.sError, v.Ambient.NewLine, v.Local.sTemp2(0), v.Local.sError)
+		f.Intrinsic.Control.Next(v.Local.iCnt)
+		
+		f.Intrinsic.String.Build("CH ROBINSON - GSS Integration{0}{0}ORDER ID: {1}{0}ORDER_NUMBER: {2}{0}{3}", v.Ambient.NewLine, v.Local.sOrderId, v.Local.sOrder_No, v.Local.sError, v.Local.sMsg)
+		
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.UI.Msgbox(v.Local.sMsg)
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.postXML.End
+
+Program.Sub.checkCustomFolder.Start
+v.Local.sFolder.Declare
+v.Local.bExists.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5665\", v.Caller.GlobalDir, v.Local.sFolder)
+	f.Intrinsic.File.DirExists(v.Local.sFolder, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sFolder)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.checkCustomFolder.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$bpham$}$20210427131255561$}$Di0riF4Q5RIv6jxva5zSWDOOsXP37NsogHTSNvSQDFtI3cZuuQrdzMyLEaN5Uxe1P4/I21TrK8Y=
+Program.Sub.Comments.End
