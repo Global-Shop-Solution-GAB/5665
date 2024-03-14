@@ -1,0 +1,176 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("HTTP POST SETTINGS")
+Gui.Form..Size(7635,3015)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.frm_Post_Settings.Create(Frame)
+Gui.Form.frm_Post_Settings.Size(7260,2340)
+Gui.Form.frm_Post_Settings.Position(45,15)
+Gui.Form.lbl1.Create(Label,"Authentication ID",True,1560,255,0,120,285,True,1,"Arial",8,-2147483633,0)
+Gui.Form.lbl1.Parent("frm_Post_Settings")
+Gui.Form.lbl2.Create(Label,"Authentication Key",True,1560,255,0,120,720,True,1,"Arial",8,-2147483633,0)
+Gui.Form.lbl2.Parent("frm_Post_Settings")
+Gui.Form.lbl3.Create(Label,"Content Type",True,1560,255,0,120,1155,True,1,"Arial",8,-2147483633,0)
+Gui.Form.lbl3.Parent("frm_Post_Settings")
+Gui.Form.lbl4.Create(Label,"Post URL",True,1560,255,0,120,1575,True,1,"Arial",8,-2147483633,0)
+Gui.Form.lbl4.Parent("frm_Post_Settings")
+Gui.Form.txtAuthID.Create(TextBox,"",True,2190,300,0,1680,195,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txtAuthID.Parent("frm_Post_Settings")
+Gui.Form.txtAuthID.MaxLength(20)
+Gui.Form.txtAuthKey.Create(TextBox,"",True,2190,300,0,1680,630,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txtAuthKey.Parent("frm_Post_Settings")
+Gui.Form.txtAuthKey.MaxLength(20)
+Gui.Form.txtContentType.Create(TextBox,"",True,5505,300,0,1680,1065,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txtContentType.Parent("frm_Post_Settings")
+Gui.Form.txtContentType.MaxLength(200)
+Gui.Form.txtPostURL.Create(TextBox,"",True,5505,300,0,1680,1500,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txtPostURL.Parent("frm_Post_Settings")
+Gui.Form.txtPostURL.MaxLength(200)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(855,375)
+Gui.Form.cmdSave.Position(6330,1860)
+Gui.Form.cmdSave.Parent("frm_Post_Settings")
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.cmdRestore.Create(Button)
+Gui.Form.cmdRestore.Enabled(False)
+Gui.Form.cmdRestore.Visible(False)
+Gui.Form.cmdRestore.Size(855,375)
+Gui.Form.cmdRestore.Position(5400,1860)
+Gui.Form.cmdRestore.Parent("frm_Post_Settings")
+Gui.Form.cmdRestore.Caption("Restore")
+Gui.Form.cmdRestore.Event(Click,cmdRestore_Click)
+Gui.Form.lblUser.Create(Label,"",True,3240,255,0,3945,285,True,1,"Arial",8,-2147483633,0)
+Gui.Form.lblUser.Parent("frm_Post_Settings")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.CallSub(LoadIcon)
+	f.Intrinsic.Control.If(v.Caller.User.Trim, =, "SUPERVSR")
+		gui.Form.cmdRestore.Enabled(True)
+		gui.Form.cmdRestore.Visible(True)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.CallSub(loadData)
+	gui.Form..Show
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+'Closes ODBC connection, default to connection : "con"
+f.Intrinsic.Control.If(v.ODBC!con.State, =, 1)
+	f.ODBC.Connection!con.Close
+f.Intrinsic.Control.EndIf
+
+'Generic Error message.
+f.Intrinsic.String.Build("Project GCG_5665_POST_SETTINGS.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.loadIcon.Start
+v.Local.sIcon.Declare
+'sets the icon
+f.Intrinsic.String.Build("{0}\ART\gss2.ico", v.Caller.GlobalDir, v.Local.sIcon)
+gui.Form..Icon(v.Local.sIcon)
+Program.Sub.loadIcon.End
+
+Program.Sub.cmdSave_Click.Start
+v.Local.sAuthID.Declare
+v.Local.sAuthKey.Declare
+v.Local.sContentType.Declare
+v.Local.sPostURL.Declare
+v.Local.sSQL.Declare
+v.Local.sLabel.Declare
+f.Intrinsic.Control.Try	
+	v.Local.sAuthID.Set(v.Screen.Form!txtAuthID.Text!FieldValTrim)
+	v.Local.sAuthKey.Set(v.Screen.Form!txtAuthKey.Text!FieldValTrim)
+	v.Local.sContentType.Set(v.Screen.Form!txtContentType.Text!FieldValTrim)
+	v.Local.sPostURL.Set(v.Screen.Form!txtPostURL.Text!FieldValTrim)
+	
+	f.Intrinsic.String.Build("Insert into  GCG_5665_POST_INFO (AuthID, AuthKey, ContentType, PostURL, GSS_USER) Values ('{0}', '{1}', '{2}', '{3}','{4}')", v.Local.sAuthID.Trim, v.Local.sAuthKey.Trim, v.Local.sContentType.Trim, v.Local.sPostURL.Trim, v.Caller.User.Trim, v.Local.sSQL)
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.ODBC.Connection!con.Execute("Delete From GCG_5665_POST_INFO")
+	 	f.ODBC.Connection!con.Execute(v.Local.sSQL)
+	f.ODBC.Connection!con.Close
+	'Set Label
+	f.Intrinsic.String.Build("Last Saved by: {0}", v.Caller.User, v.Local.sLabel)
+	gui.Form.lblUser.Caption(v.Local.sLabel.Trim)	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.cmdRestore_Click.Start
+f.Intrinsic.Control.Try
+	gui.Form.txtAuthID.Text("129587")
+	gui.Form.txtAuthKey.Text("858345273")
+	gui.Form.txtContentType.Text("application/x-www-form-urlencoded")
+	gui.Form.txtPostURL.Text("http://www.enterprisetms.com/ws/ShipmentIntegration.asmx/SubmitOrder")
+
+	gui.Form.lblUser.Caption("Last Saved by: SYSTEM RESTORE")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdRestore_Click.End
+
+Program.Sub.loadData.Start
+v.Local.sAuthID.Declare
+v.Local.sAuthKey.Declare
+v.Local.sContentType.Declare
+v.Local.sPostURL.Declare
+v.Local.sMSG.Declare
+v.Local.sLabel.Declare
+v.Local.iRet.Declare
+f.Intrinsic.Control.Try
+	'Check table is close.
+	f.Intrinsic.Control.If(v.DataTable.loadDT.Exists)
+		f.Data.DataTable.Close("loadDT")
+	f.Intrinsic.Control.EndIf
+	'Load from DB.
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Data.DataTable.CreateFromSQL("loadDT", "con", "Select * from GCG_5665_POST_INFO")
+	f.ODBC.Connection!con.Close
+	'Check there's only one record.
+	f.Intrinsic.Control.If(v.DataTable.loadDT.RowCount, <>, 1)
+		'Ask to restore Hardcoded Data.
+		f.Intrinsic.String.Build("Row count different that 1.{0}Would you like to retore System Data?", v.Ambient.NewLine, v.Local.sMSG)
+		f.Intrinsic.UI.Msgbox(v.Local.sMSG, "Error", 3, v.Local.iRet)
+		f.Intrinsic.Control.If(v.Local.iRet, =, 6)
+			'call for hardcoded data.
+			f.Intrinsic.Control.CallSub(cmdRestore_Click)
+		f.Intrinsic.Control.EndIf
+		f.Data.DataTable.Close("loadDT")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	'Set Textboxes.
+	gui.Form.txtAuthID.Text(v.DataTable.loadDT(0).AuthID!FieldValTrim)
+	gui.Form.txtAuthKey.Text(v.DataTable.loadDT(0).AuthKey!FieldValTrim)
+	gui.Form.txtContentType.Text(v.DataTable.loadDT(0).ContentType!FieldValTrim)
+	gui.Form.txtPostURL.Text(v.DataTable.loadDT(0).PostURL!FieldValTrim)
+	'Set Label
+	f.Intrinsic.String.Build("Last Saved by: {0}", v.DataTable.loadDT(0).GSS_USER!FieldValTrim, v.Local.sLabel)
+	gui.Form.lblUser.Caption(v.Local.sLabel.Trim)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadData.End
