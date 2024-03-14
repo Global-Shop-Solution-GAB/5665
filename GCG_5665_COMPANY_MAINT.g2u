@@ -1,0 +1,166 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Size(12375,5595)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Caption("Company Contact Maintenance")
+Gui.Form.frmGrid.Create(Frame)
+Gui.Form.frmGrid.Size(11985,4350)
+Gui.Form.frmGrid.Position(90,90)
+Gui.Form.frmGrid.Anchor(15)
+Gui.Form.GsGcDisplay.Create(GsGridControl)
+Gui.Form.GsGcDisplay.Size(11805,4080)
+Gui.Form.GsGcDisplay.Position(90,210)
+Gui.Form.GsGcDisplay.Parent("frmGrid")
+Gui.Form.GsGcDisplay.Anchor(15)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(855,375)
+Gui.Form.cmdSave.Position(11115,4515)
+Gui.Form.cmdSave.Anchor(10)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.CallSub(createDisplayDT)
+	f.Intrinsic.Control.CallSub(loadGridProperties)
+	f.Intrinsic.Control.CallSub(loadData)
+	gui.Form..Show
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.cmdSave_Click.Start
+f.Intrinsic.Control.Try
+	f.Data.DataTable.SetValue("displayDT", -1, "CCC_USER", v.Caller.User, "CCC_DATE", v.Ambient.Date.PervasiveDate)
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.ODBC.Connection!con.Execute("Delete from GCG_5665_CCC_CONTACT")
+	 	f.Data.DataTable.SaveToDB("displayDT", "con", "GCG_5665_CCC_CONTACT", "COMPANY_CODE", 256)
+	f.ODBC.Connection!con.Close
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+'Closes ODBC connection, default to connection : "con"
+f.Intrinsic.Control.If(v.ODBC!con.State, =, 1)
+	f.ODBC.Connection!con.Close
+f.Intrinsic.Control.EndIf
+
+'Generic Error message.
+f.Intrinsic.String.Build("Project GCG_5665_COMPANY_MAINT.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.createDisplayDT.Start
+f.Intrinsic.Control.Try
+	f.Data.DataTable.Create("displayDT", true)
+	f.Data.DataTable.AddColumn("displayDT", "COMPANY_CODE", "String")
+	f.Data.DataTable.AddColumn("displayDT", "COMPANY_NAME", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_CONTACT", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_PHONE", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_EMAIL", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_NOTIFICATION", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_USER", "String")
+	f.Data.DataTable.AddColumn("displayDT", "CCC_DATE", "String")
+	
+	f.Data.DataView.Create("displayDT", "displayDV", 22)
+	gui.Form.GsGcDisplay.AddGridviewFromDataview("displayGV", "displayDT", "displayDV")
+	gui.Form.GsGcDisplay.MainView("displayGV")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.createDisplayDT.End
+
+Program.Sub.loadGridProperties.Start
+v.Local.iCnt.Declare
+v.Local.sFields.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Split(v.DataTable.displayDT.FieldNames, "*!*", v.Local.sFields)
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.Local.sFields.UBound, 1)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderFontBold", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "Visible", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "ReadOnly", False)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "AllowEdit", True)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderHAlignment", "Near")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "CellHAlignment", "Near")
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderBackColor", v.Color.GSS)
+		gui.Form.GsGcDisplay.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderForeColor", v.Color.White)
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_CODE", "Caption", "Code")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_NAME", "Caption", "Company Name")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_CONTACT", "Caption", "Contact Name")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_PHONE", "Caption", "Phone")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_EMAIL", "Caption", "Email")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_NOTIFICATION", "Caption", "Notification")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_USER", "Caption", "User")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_DATE", "Caption", "Date")
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_CODE", "HeaderHAlignment", "Center")
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_CODE", "CellHAlignment", "Center")
+	
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_CODE", "ReadOnly", True)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_CODE", "AllowEdit", False)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_NAME", "ReadOnly", True)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "COMPANY_NAME", "AllowEdit", False)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_USER", "ReadOnly", True)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_USER", "AllowEdit", False)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_DATE", "ReadOnly", True)
+	gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "CCC_DATE", "AllowEdit", False)
+	
+	gui.Form.GsGcDisplay.BestFitColumns("displayGV")
+	
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "ReadOnly", False)
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "AllowEdit", True)
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "HeaderHAlignment", "Center")
+	'gui.Form.GsGcDisplay.SetColumnProperty("displayGV", "Default", "CellHAlignment", "Center")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadGridProperties.End
+
+Program.Sub.loadData.Start
+f.Intrinsic.Control.Try
+	f.ODBC.Connection!con.OpenCommonConnection
+		f.Data.DataTable.CreateFromSQL("tmpDisplayDT1", "con", "Select cocode as COMPANY_CODE, companyname as COMPANY_NAME from COMPANIES")
+	f.ODBC.Connection!con.Close
+	
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Data.DataTable.CreateFromSQL("tmpDisplayDT2", "con", "Select * from GCG_5665_CCC_CONTACT")
+	f.ODBC.Connection!con.Close
+	
+	f.Data.Linq.Join("Leftjoin", "datatable", "tmpDisplayDT1*!*D", "datatable", "tmpDisplayDT2*!*T", "D.COMPANY_CODE = T.COMPANY_CODE", "D.COMPANY_CODE*!*D.COMPANY_NAME*!*T.CCC_CONTACT*!*T.CCC_PHONE*!*T.CCC_EMAIL*!*T.CCC_NOTIFICATION*!*T.CCC_USER*!*T.CCC_DATE", "", "", "", "tmpDisplayDT", true)
+	f.Data.DataTable.DeleteRow("displayDT")
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataTable.Merge("tmpDisplayDT", "displayDT", false, 2)
+	f.Data.DataTable.AcceptChanges("displayDT")
+	
+	f.Data.DataTable.Close("tmpDisplayDT")
+	f.Data.DataTable.Close("tmpDisplayDT1")
+	f.Data.DataTable.Close("tmpDisplayDT2")	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadData.End
